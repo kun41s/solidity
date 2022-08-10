@@ -1,53 +1,48 @@
+//SPDX-License-Identifier: GPL-3.0
+
 /*
-Restricted Access to a Contract is a common practice. By Default, a contract state is read-only unless it is specified as public.
+Let us build a contract with modified restricted access with the following common writeouts:
 
-We can restrict who can modify the contract's state or call a contract's functions using modifiers. We will create and use multiple modifiers as explained below −
-
-    onlyBy − once used on a function then only the mentioned caller can call this function.
-
-    onlyAfter − once used on a function then that function can be called after certain time period.
-
-    costs − once used on a function then caller can call this function only if certain value is provided.
+       onlyBy - only the mention caller can call this function
+       onlyAfter - called after certain period of time
+       costs - call this function only if certain value is provided.
 */
 
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity >= 0.7.0 < 0.9.0;
 
 contract RestrictedAccess {
-   address public owner = msg.sender;
-   uint public creationTime = now;
 
-   modifier onlyBy(address _account) {
-      require(
-         msg.sender == _account,
-         "Sender not authorized."
-      );
-      _;
-   }
-   function changeOwner(address _newOwner) public onlyBy(owner) {
-      owner = _newOwner;
-   }
-   modifier onlyAfter(uint _time) {
-      require(
-         now >= _time,
-         "Function called too early."
-      );
-      _;
-   }
-   function disown() public onlyBy(owner) onlyAfter(creationTime + 6 weeks) {
-      delete owner;
-   }
-   modifier costs(uint _amount) {
-      require(
-         msg.value >= _amount,
-         "Not enough Ether provided."
-      );
-      _;
-      if (msg.value > _amount)
-         msg.sender.transfer(msg.value - _amount);
-   }
-   function forceOwnerChange(address _newOwner) public payable costs(200 ether) {
-      owner = _newOwner;
-      if (uint(owner) & 0 == 1) return;        
-   }
+    address public owner = msg.sender;
+    uint public creationTime = block.timestamp;
+
+    //modifier will require the current caller to be equal to an account address
+    //which we set as an input in the modifier.
+    modifier onlyBy (address _account) {
+        require (msg.sender == _account, "Sender is not authorized");
+        _;
+    }
+
+    modifier onlyAfter (uint _time) {
+        require (block.timestamp >= _time, "Function called to early");
+        _;
+    }
+
+    modifier costs (uint _amount) {
+        require(msg.value >= _amount, "Not enough ethers");
+        _;
+    }
+
+    //function to change change owner address
+    function changeOwner (address _newOwner) onlyBy(owner) public {
+        owner = _newOwner;
+    }
+
+    //function that can disown the current owner
+    function disOwn () onlyBy(owner) onlyAfter(creationTime + 5 seconds) public {
+        delete owner;
+    }
+
+    function forceOwnerChange(address _newAddress) payable public costs(200 ether)  {
+        owner = _newAddress;
+    }
 }
